@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Codex CLI 使いこなしガイド</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,.08);
+      --panel-2: rgba(255,255,255,.12);
+      --text: #f7f9ff;
+      --muted: #b9c2d6;
+      --line: rgba(255,255,255,.16);
+      --accent: #8ee7ff;
+      --accent-2: #a78bfa;
+      --accent-3: #7ee787;
+      --accent-4: #ffca7a;
+      --danger: #ff8a8a;
+      --shadow: 0 24px 70px rgba(0,0,0,.35);
+      --radius: 22px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: Inter, "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 5%, rgba(142,231,255,.18), transparent 28rem),
+        radial-gradient(circle at 90% 0%, rgba(167,139,250,.20), transparent 30rem),
+        radial-gradient(circle at 75% 70%, rgba(126,231,135,.10), transparent 24rem),
+        linear-gradient(180deg, #0b1020 0%, #111827 50%, #0b1020 100%);
+      line-height: 1.75;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+
+    .hero {
+      padding: 70px 0 34px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 34px;
+      align-items: center;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,.06);
+      color: var(--muted);
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+    }
+    h1 {
+      font-size: clamp(38px, 7vw, 78px);
+      line-height: 1.02;
+      margin: 18px 0 18px;
+      letter-spacing: -.06em;
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .lead {
+      font-size: clamp(17px, 2.4vw, 23px);
+      color: var(--muted);
+      max-width: 820px;
+      margin: 0 0 26px;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.08);
+      color: var(--text);
+      font-weight: 700;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    }
+    .button.primary { background: linear-gradient(135deg, rgba(142,231,255,.26), rgba(167,139,250,.22)); }
+
+    .terminal-card {
+      background: rgba(9, 14, 28, .88);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: rotate(1.2deg);
+    }
+    .terminal-top {
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.06);
+      border-bottom: 1px solid rgba(255,255,255,.10);
+    }
+    .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; }
+    .dot.r { background: #ff6b6b; } .dot.y { background: #ffd166; } .dot.g { background: #7ee787; }
+    .terminal-body { padding: 22px; font-family: var(--mono); font-size: 14px; color: #d9e8ff; }
+    .prompt { color: var(--accent-3); }
+    .cmd { color: #fff; }
+    .comment { color: #8aa0be; }
+
+    nav.toc {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(11,16,32,.78);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .toc-inner {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 11px 0;
+    }
+    .toc a {
+      white-space: nowrap;
+      color: var(--muted);
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+    .toc a:hover { color: var(--text); border-color: var(--line); background: rgba(255,255,255,.06); text-decoration: none; }
+
+    section { padding: 56px 0; }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .section-title h2 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.1;
+      letter-spacing: -.04em;
+    }
+    .badge-icon {
+      width: 50px;
+      height: 50px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(142,231,255,.24), rgba(167,139,250,.20));
+      border: 1px solid var(--line);
+      font-size: 24px;
+      flex: 0 0 auto;
+    }
+    .sub { color: var(--muted); margin: -6px 0 26px; max-width: 880px; }
+
+    .grid { display: grid; gap: 18px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 16px 40px rgba(0,0,0,.18);
+      padding: 22px;
+      backdrop-filter: blur(12px);
+    }
+    .card h3 { margin: 0 0 10px; font-size: 22px; letter-spacing: -.02em; }
+    .card p { color: var(--muted); margin: 0; }
+    .card .big { font-size: 38px; line-height: 1; margin-bottom: 12px; }
+    .card.good { border-color: rgba(126,231,135,.32); }
+    .card.warn { border-color: rgba(255,202,122,.34); }
+    .card.danger { border-color: rgba(255,138,138,.34); }
+
+    .kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      padding: 3px 9px;
+      margin: 0 2px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.20);
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,.25);
+      font-family: var(--mono);
+      font-size: .92em;
+      color: #fff;
+      white-space: nowrap;
+    }
+    code, pre {
+      font-family: var(--mono);
+      color: #ecf8ff;
+    }
+    code.inline { background: rgba(255,255,255,.10); padding: 2px 6px; border-radius: 6px; }
+    pre {
+      margin: 14px 0 0;
+      padding: 17px;
+      background: rgba(0,0,0,.30);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 16px;
+      overflow: auto;
+      line-height: 1.6;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+    }
+    th, td { padding: 13px 15px; border-bottom: 1px solid rgba(255,255,255,.10); vertical-align: top; }
+    th { text-align: left; color: #fff; background: rgba(255,255,255,.10); font-size: 14px; }
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+
+    .pill-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.07);
+      color: var(--text);
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      align-items: stretch;
+      margin-top: 20px;
+    }
+    .flow-step {
+      position: relative;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.07);
+      border-radius: 18px;
+      padding: 18px;
+      min-height: 140px;
+    }
+    .flow-step:not(:last-child)::after {
+      content: "→";
+      position: absolute;
+      right: -18px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-weight: 900;
+      z-index: 2;
+    }
+    .flow-num {
+      display: inline-grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(142,231,255,.18);
+      border: 1px solid rgba(142,231,255,.45);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .flow-step strong { display: block; margin-bottom: 6px; }
+    .flow-step span { color: var(--muted); font-size: 14px; }
+
+    .svg-wrap {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255,255,255,.06);
+      padding: 16px;
+      overflow: hidden;
+    }
+    .svg-wrap svg { width: 100%; height: auto; display: block; }
+
+    .callout {
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(142,231,255,.30);
+      background: linear-gradient(135deg, rgba(142,231,255,.12), rgba(167,139,250,.10));
+      margin: 20px 0;
+    }
+    .callout strong { color: #fff; }
+    .callout p { margin: 2px 0 0; color: var(--muted); }
+
+    .cheat {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .cheat-item {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      background: rgba(0,0,0,.18);
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+    }
+    .cheat-item div:last-child { color: var(--muted); }
+
+    .timeline { position: relative; padding-left: 28px; }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 10px;
+      top: 6px;
+      bottom: 6px;
+      width: 2px;
+      background: linear-gradient(var(--accent), var(--accent-2));
+    }
+    .timeline-item { position: relative; margin-bottom: 18px; }
+    .timeline-item::before {
+      content: "";
+      position: absolute;
+      left: -23px;
+      top: 8px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(142,231,255,.16);
+    }
+    .timeline-item strong { display: block; }
+    .timeline-item span { color: var(--muted); }
+
+    .source-list { color: var(--muted); font-size: 14px; }
+    .source-list li { margin-bottom: 8px; }
+
+    footer {
+      padding: 45px 0 70px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      margin-top: 28px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid, .grid.two, .grid.three, .grid.four, .cheat { grid-template-columns: 1fr; }
+      .flow { grid-template-columns: 1fr; }
+      .flow-step:not(:last-child)::after { content: "↓"; right: auto; left: 24px; top: auto; bottom: -21px; transform: none; }
+      .terminal-card { transform: none; }
+      .wrap { width: min(100% - 28px, 1180px); }
+      .toc-inner { width: min(100% - 28px, 1180px); }
+    }
+
+    @media print {
+      :root { --bg: #fff; --panel: #fff; --panel-2: #fff; --text: #111827; --muted: #374151; --line: #d1d5db; }
+      body { background: #fff; color: #111827; }
+      nav.toc, .hero-actions { display: none; }
+      .card, .terminal-card, .svg-wrap, table { box-shadow: none; break-inside: avoid; }
+      a { color: #111827; text-decoration: underline; }
+      section { padding: 24px 0; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero" id="top">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow">⚡ Terminal-first coding agent guide</div>
+        <h1><span class="gradient-text">Codex CLI</span><br>使いこなしガイド</h1>
+        <p class="lead">/plan、! コマンド、Ctrl+Tのログ確認、権限設定、AGENTS.md、MCP、exec運用まで。日常開発で迷わないための実践版チートシートです。</p>
+        <div class="hero-actions">
+          <a class="button primary" href="#cheatsheet">🚀 鉄板セットを見る</a>
+          <a class="button" href="#workflow">🧭 ワークフローを見る</a>
+          <a class="button" href="#permissions">🛡️ 権限設定を見る</a>
+        </div>
+      </div>
+      <div class="terminal-card" aria-label="Codex CLI terminal illustration">
+        <div class="terminal-top"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div>
+        <div class="terminal-body">
+          <div><span class="prompt">$</span> <span class="cmd">codex --sandbox workspace-write --ask-for-approval on-request</span></div>
+          <br>
+          <div><span class="comment"># まず計画を出す</span></div>
+          <div><span class="prompt">›</span> <span class="cmd">/plan 認証まわりのリファクタリング方針を立てて</span></div>
+          <br>
+          <div><span class="comment"># 実行中でも次ターンをキュー</span></div>
+          <div><span class="prompt">Tab</span> <span class="cmd">! npm test</span></div>
+          <br>
+          <div><span class="comment"># ログをたどる</span></div>
+          <div><span class="prompt">^T</span> <span class="cmd">open transcript</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc" aria-label="目次">
+    <div class="toc-inner">
+      <a href="#overview">全体像</a>
+      <a href="#keys">キー操作</a>
+      <a href="#slash">スラッシュコマンド</a>
+      <a href="#shell">! シェル</a>
+      <a href="#startup">起動オプション</a>
+      <a href="#permissions">権限</a>
+      <a href="#agents">AGENTS.md</a>
+      <a href="#config">設定</a>
+      <a href="#exec">exec</a>
+      <a href="#workflow">運用</a>
+      <a href="#cheatsheet">鉄板セット</a>
+    </div>
+  </nav>
+
+  <main>
+    <section id="overview">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🧠</div><h2>1. Codex CLIの全体像</h2></div>
+        <p class="sub">Codex CLIは、ローカルのターミナルから使うコーディングエージェントです。コードを読み、編集し、コマンドを実行し、差分やテスト結果を見ながら作業できます。</p>
+
+        <div class="grid three">
+          <div class="card">
+            <div class="big">💬</div>
+            <h3>対話する</h3>
+            <p>TUI上で依頼、追加指示、スラッシュコマンド、ファイル指定を行います。</p>
+          </div>
+          <div class="card">
+            <div class="big">🛠️</div>
+            <h3>編集・実行する</h3>
+            <p>ワークスペース内でコード編集やテスト実行を行い、必要に応じて承認を求めます。</p>
+          </div>
+          <div class="card">
+            <div class="big">🔍</div>
+            <h3>レビューする</h3>
+            <p>/diff や /review で差分、リスク、テスト不足を確認できます。</p>
+          </div>
+        </div>
+
+        <div class="flow" aria-label="typical codex workflow">
+          <div class="flow-step"><div class="flow-num">1</div><strong>起動</strong><span><code class="inline">codex</code> でリポジトリ内から開始</span></div>
+          <div class="flow-step"><div class="flow-num">2</div><strong>計画</strong><span><code class="inline">/plan</code> で影響範囲と手順を確認</span></div>
+          <div class="flow-step"><div class="flow-num">3</div><strong>編集</strong><span>スコープを絞って実装</span></div>
+          <div class="flow-step"><div class="flow-num">4</div><strong>検証</strong><span><code class="inline">! npm test</code> などで確認</span></div>
+          <div class="flow-step"><div class="flow-num">5</div><strong>レビュー</strong><span><code class="inline">/diff</code> と <code class="inline">/review</code></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="keys">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">⌨️</div><h2>2. まず覚えるキー操作</h2></div>
+        <p class="sub">Codex CLIは「実行中に次の指示を積める」「ログをすぐたどれる」ことを覚えると一気に使いやすくなります。</p>
+
+        <div class="grid two">
+          <div class="card">
+            <h3>ショートカット早見表</h3>
+            <div class="cheat">
+              <div class="cheat-item"><div><span class="kbd">/</span></div><div>スラッシュコマンド一覧</div></div>
+              <div class="cheat-item"><div><span class="kbd">Tab</span></div><div>実行中に次ターンをキュー</div></div>
+              <div class="cheat-item"><div><span class="kbd">!</span></div><div>TUI内からシェルコマンド</div></div>
+              <div class="cheat-item"><div><span class="kbd">Ctrl</span>+<span class="kbd">T</span></div><div>transcript / 過去ログ</div></div>
+              <div class="cheat-item"><div><span class="kbd">Ctrl</span>+<span class="kbd">R</span></div><div>プロンプト履歴検索</div></div>
+              <div class="cheat-item"><div><span class="kbd">Ctrl</span>+<span class="kbd">L</span></div><div>画面だけクリア</div></div>
+              <div class="cheat-item"><div><span class="kbd">↑</span><span class="kbd">↓</span></div><div>下書き履歴をたどる</div></div>
+              <div class="cheat-item"><div><span class="kbd">Ctrl</span>+<span class="kbd">C</span></div><div>終了または中断</div></div>
+            </div>
+          </div>
+          <div class="svg-wrap" aria-label="shortcut illustration">
+            <svg viewBox="0 0 720 500" role="img">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#8ee7ff"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+                <filter id="glow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              </defs>
+              <rect x="30" y="40" width="660" height="410" rx="30" fill="rgba(0,0,0,.28)" stroke="rgba(255,255,255,.22)"/>
+              <rect x="70" y="90" width="580" height="120" rx="18" fill="rgba(255,255,255,.08)"/>
+              <text x="95" y="130" fill="#7ee787" font-family="monospace" font-size="26">› /plan 実装前に計画して</text>
+              <text x="95" y="175" fill="#b9c2d6" font-family="monospace" font-size="22">Tab: 次ターンに積む</text>
+              <circle cx="175" cy="305" r="62" fill="url(#g1)" opacity=".9" filter="url(#glow)"/>
+              <text x="137" y="314" fill="#0b1020" font-family="monospace" font-size="30" font-weight="700">^T</text>
+              <text x="80" y="395" fill="#ffffff" font-family="sans-serif" font-size="23">過去ログを開く</text>
+              <circle cx="365" cy="305" r="62" fill="#7ee787" opacity=".9" filter="url(#glow)"/>
+              <text x="345" y="314" fill="#0b1020" font-family="monospace" font-size="34" font-weight="700">!</text>
+              <text x="300" y="395" fill="#ffffff" font-family="sans-serif" font-size="23">シェル実行</text>
+              <circle cx="555" cy="305" r="62" fill="#ffca7a" opacity=".95" filter="url(#glow)"/>
+              <text x="520" y="314" fill="#0b1020" font-family="monospace" font-size="30" font-weight="700">/</text>
+              <text x="475" y="395" fill="#ffffff" font-family="sans-serif" font-size="23">コマンド一覧</text>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="slash">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🧩</div><h2>3. スラッシュコマンドの使い分け</h2></div>
+        <p class="sub">/plan、/diff、/review、/statusを中心に、作業の粒度に応じて使い分けます。</p>
+
+        <div class="grid two">
+          <div class="card good">
+            <h3>計画・進行管理</h3>
+            <table>
+              <tr><th>コマンド</th><th>使いどころ</th></tr>
+              <tr><td><code>/plan</code></td><td>実装前に影響範囲、手順、リスクを出す</td></tr>
+              <tr><td><code>/goal</code></td><td>長い作業の達成目標を固定する</td></tr>
+              <tr><td><code>/compact</code></td><td>長くなった会話を要約してコンテキスト節約</td></tr>
+              <tr><td><code>/side</code> / <code>/btw</code></td><td>本線から外れた確認をする</td></tr>
+              <tr><td><code>/fork</code></td><td>今の会話から別案を試す</td></tr>
+            </table>
+          </div>
+          <div class="card good">
+            <h3>差分・レビュー</h3>
+            <table>
+              <tr><th>コマンド</th><th>使いどころ</th></tr>
+              <tr><td><code>/mention</code></td><td>特定ファイルやフォルダを会話に添付</td></tr>
+              <tr><td><code>/diff</code></td><td>Git差分、未ステージ、未追跡ファイルを確認</td></tr>
+              <tr><td><code>/review</code></td><td>現在の作業ツリーをレビューさせる</td></tr>
+              <tr><td><code>/copy</code></td><td>直近の完了済み出力をコピー</td></tr>
+              <tr><td><code>/status</code></td><td>モデル、権限、書き込み範囲、トークン状況を確認</td></tr>
+            </table>
+          </div>
+          <div class="card warn">
+            <h3>安全・権限</h3>
+            <table>
+              <tr><th>コマンド</th><th>使いどころ</th></tr>
+              <tr><td><code>/permissions</code></td><td>Codexが自動実行できる範囲を調整</td></tr>
+              <tr><td><code>/approve</code></td><td>拒否された操作を1回だけ承認して再試行</td></tr>
+              <tr><td><code>/debug-config</code></td><td>設定の読み込み順やポリシー制約を調査</td></tr>
+              <tr><td><code>/raw</code></td><td>長い出力をコピーしやすい表示にする</td></tr>
+              <tr><td><code>/ps</code> / <code>/stop</code></td><td>バックグラウンド端末の確認・停止</td></tr>
+            </table>
+          </div>
+          <div class="card">
+            <h3>設定・拡張</h3>
+            <table>
+              <tr><th>コマンド</th><th>使いどころ</th></tr>
+              <tr><td><code>/init</code></td><td>AGENTS.md のひな形を作る</td></tr>
+              <tr><td><code>/mcp</code></td><td>MCPサーバー・ツールを確認</td></tr>
+              <tr><td><code>/apps</code></td><td>connector / app をプロンプトに挿入</td></tr>
+              <tr><td><code>/skills</code></td><td>ローカルskillを選ぶ</td></tr>
+              <tr><td><code>/keymap</code> / <code>/vim</code></td><td>キー操作やVimモードを変更</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="callout">
+          <div style="font-size:30px">💡</div>
+          <div><strong>/plan は大きい変更の入口。</strong><p>いきなり「実装して」ではなく、まず計画、影響範囲、テスト観点、リスクを出させると失敗が減ります。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="shell">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">💻</div><h2>4. <code>!</code> でシェルコマンドを打つ</h2></div>
+        <p class="sub">TUI内で <code class="inline">!</code> からコマンドを投げると、確認結果をそのまま次の会話に使えます。</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>よく使うコマンド</h3>
+            <pre><code>! git status
+! git diff
+! npm test
+! pnpm lint
+! pytest
+! cargo test
+! rg "TODO|FIXME" .</code></pre>
+          </div>
+          <div class="card">
+            <h3>使い方のコツ</h3>
+            <div class="timeline">
+              <div class="timeline-item"><strong>短い確認は自分で実行</strong><span>git status、test、lintなどは <code>!</code> で素早く。</span></div>
+              <div class="timeline-item"><strong>失敗ログをCodexに渡す</strong><span>「この失敗を直して」と続けるだけで文脈に載る。</span></div>
+              <div class="timeline-item"><strong>実行中なら Tab でキュー</strong><span>今のターン終了後に <code>! npm test</code> を走らせられる。</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="startup">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🚀</div><h2>5. 起動時オプション</h2></div>
+        <p class="sub">普段は安全寄りの設定で起動し、必要なときだけモデルやサンドボックスを切り替えます。</p>
+        <div class="card">
+          <pre><code>codex --cd path/to/repo
+codex --model gpt-5.5
+codex --sandbox workspace-write --ask-for-approval on-request
+codex --image screenshot.png "この画面に合わせて修正して"
+codex --search "最新のAPI仕様に合わせて実装を確認して"
+codex -c model_reasoning_effort=high</code></pre>
+        </div>
+        <div class="grid three" style="margin-top:18px">
+          <div class="card"><h3>作業場所</h3><p><code class="inline">--cd</code> / <code class="inline">-C</code> で作業ディレクトリを指定。<code class="inline">--add-dir</code> で追加ディレクトリを許可。</p></div>
+          <div class="card"><h3>モデル</h3><p><code class="inline">--model</code> や <code class="inline">-c model_reasoning_effort=high</code> でモデル・推論強度を調整。</p></div>
+          <div class="card danger"><h3>危険モード</h3><p><code class="inline">--yolo</code> は承認とサンドボックスを回避。隔離環境以外では非推奨。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="permissions">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🛡️</div><h2>6. サンドボックスと承認</h2></div>
+        <p class="sub">Codexの安全性は「どこまで実行できるか」と「いつ人間の承認を求めるか」で決まります。</p>
+        <div class="grid two">
+          <div class="svg-wrap" aria-label="sandbox approval diagram">
+            <svg viewBox="0 0 760 430" role="img">
+              <defs>
+                <linearGradient id="shield" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8ee7ff"/><stop offset="1" stop-color="#7ee787"/></linearGradient>
+              </defs>
+              <rect x="34" y="28" width="692" height="374" rx="32" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.20)"/>
+              <path d="M380 68 L535 126 V224 C535 305 475 358 380 382 C285 358 225 305 225 224 V126 Z" fill="url(#shield)" opacity=".22" stroke="#8ee7ff" stroke-width="4"/>
+              <text x="380" y="135" text-anchor="middle" fill="#fff" font-size="29" font-weight="700" font-family="sans-serif">Codex CLI</text>
+              <text x="380" y="180" text-anchor="middle" fill="#b9c2d6" font-size="20" font-family="sans-serif">Sandbox + Approval</text>
+              <rect x="80" y="255" width="180" height="72" rx="18" fill="rgba(126,231,135,.16)" stroke="rgba(126,231,135,.42)"/>
+              <text x="170" y="286" text-anchor="middle" fill="#fff" font-size="20" font-family="sans-serif">read-only</text>
+              <text x="170" y="313" text-anchor="middle" fill="#b9c2d6" font-size="15" font-family="sans-serif">読むだけ</text>
+              <rect x="290" y="255" width="180" height="72" rx="18" fill="rgba(142,231,255,.16)" stroke="rgba(142,231,255,.42)"/>
+              <text x="380" y="286" text-anchor="middle" fill="#fff" font-size="20" font-family="sans-serif">workspace-write</text>
+              <text x="380" y="313" text-anchor="middle" fill="#b9c2d6" font-size="15" font-family="sans-serif">普段の実装</text>
+              <rect x="500" y="255" width="180" height="72" rx="18" fill="rgba(255,138,138,.16)" stroke="rgba(255,138,138,.45)"/>
+              <text x="590" y="286" text-anchor="middle" fill="#fff" font-size="20" font-family="sans-serif">danger-full</text>
+              <text x="590" y="313" text-anchor="middle" fill="#b9c2d6" font-size="15" font-family="sans-serif">隔離環境向け</text>
+            </svg>
+          </div>
+          <div class="card">
+            <h3>おすすめの考え方</h3>
+            <table>
+              <tr><th>場面</th><th>推奨</th></tr>
+              <tr><td>コードを読ませるだけ</td><td><code>read-only</code></td></tr>
+              <tr><td>普段の実装・修正</td><td><code>workspace-write</code> + <code>on-request</code></td></tr>
+              <tr><td>CIや隔離コンテナ</td><td><code>never</code> や <code>--yolo</code> を慎重に検討</td></tr>
+              <tr><td>秘密情報が多いrepo</td><td>permission profileでdenyルールを設定</td></tr>
+            </table>
+            <pre><code>codex --sandbox workspace-write --ask-for-approval on-request</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="agents">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">📘</div><h2>7. AGENTS.mdは早めに作る</h2></div>
+        <p class="sub">毎回同じ説明をする代わりに、プロジェクトのルール、テスト方法、禁止事項、完了条件を書いておきます。</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>生成</h3>
+            <pre><code>/init</code></pre>
+            <p style="margin-top:14px">ひな形を作ったら、チームの実態に合わせて短く正確に直すのがコツです。</p>
+          </div>
+          <div class="card">
+            <h3>テンプレート例</h3>
+            <pre><code># AGENTS.md
+
+## Project layout
+- src/: application code
+- tests/: test code
+- docs/: design notes
+
+## Commands
+- Install: pnpm install
+- Lint: pnpm lint
+- Test: pnpm test
+- Typecheck: pnpm typecheck
+
+## Rules
+- Do not add production dependencies without asking.
+- Keep public API compatibility unless explicitly requested.
+- After changing behavior, update tests.
+
+## Done when
+- Lint passes.
+- Relevant tests pass.
+- /diff shows only intentional changes.</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="config">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">⚙️</div><h2>8. config.tomlで毎回の設定を固定</h2></div>
+        <p class="sub">個人設定は <code class="inline">~/.codex/config.toml</code>、プロジェクト設定は信頼済みリポジトリの <code class="inline">.codex/config.toml</code> に置けます。</p>
+        <div class="card">
+          <pre><code>model = "gpt-5.5"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "cached"
+personality = "pragmatic"
+
+[tui.keymap.global]
+open_transcript = "ctrl-t"
+
+[tui.keymap.composer]
+submit = ["enter", "ctrl-m"]
+
+[analytics]
+enabled = false</code></pre>
+        </div>
+        <div class="pill-row" style="margin-top:18px">
+          <span class="pill">model</span><span class="pill">sandbox_mode</span><span class="pill">approval_policy</span><span class="pill">web_search</span><span class="pill">personality</span><span class="pill">keymap</span><span class="pill">log_dir</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="exec">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🤖</div><h2>9. codex execは自動化・CI向け</h2></div>
+        <p class="sub">対話せずに最後まで走らせたいときは <code class="inline">codex exec</code> または <code class="inline">codex e</code> を使います。</p>
+        <div class="grid two">
+          <div class="card">
+            <h3>基本例</h3>
+            <pre><code>codex exec "テスト失敗原因を調べて、修正案を出して"
+codex e --json "lintエラーを直して"
+codex e - &lt; prompt.md
+codex e --output-last-message result.md "変更点を要約して"</code></pre>
+          </div>
+          <div class="card">
+            <h3>便利なオプション</h3>
+            <table>
+              <tr><th>オプション</th><th>用途</th></tr>
+              <tr><td><code>--json</code></td><td>JSONLイベントとして出力</td></tr>
+              <tr><td><code>-o</code></td><td>最終応答をファイル保存</td></tr>
+              <tr><td><code>--output-schema</code></td><td>最終応答をJSON Schemaで検証</td></tr>
+              <tr><td><code>--ephemeral</code></td><td>セッション履歴をディスクに残さない</td></tr>
+              <tr><td><code>resume --last</code></td><td>前回セッションを再開</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🧭</div><h2>10. 実務ワークフロー</h2></div>
+        <p class="sub">「小さい修正」「大きい改修」「デバッグ」「レビュー専用」で使い方を分けると安定します。</p>
+        <div class="grid four">
+          <div class="card">
+            <div class="big">🔧</div>
+            <h3>小さい修正</h3>
+            <pre><code>/mention src/foo.ts
+境界条件バグを直して。既存APIは変えないで。
+
+/diff
+! npm test -- foo
+/review</code></pre>
+          </div>
+          <div class="card">
+            <div class="big">🏗️</div>
+            <h3>大きい改修</h3>
+            <pre><code>/plan 認証処理を refresh token ベースに移行したい。
+影響範囲、移行手順、必要なテスト、リスクを先に出して。</code></pre>
+          </div>
+          <div class="card">
+            <div class="big">🐛</div>
+            <h3>デバッグ</h3>
+            <pre><code>! npm test
+この失敗ログを見て、原因を特定して。
+修正前に仮説を3つ出して。</code></pre>
+          </div>
+          <div class="card">
+            <div class="big">👀</div>
+            <h3>レビュー専用</h3>
+            <pre><code>/review
+/diff
+
+codex exec --sandbox read-only "この差分をレビューして"</code></pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="prompting">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">✍️</div><h2>11. 良い依頼の型</h2></div>
+        <p class="sub">最初のプロンプトに Goal / Context / Constraints / Done when を入れると、作業品質が安定します。</p>
+        <div class="grid two">
+          <div class="card good">
+            <h3>良い例</h3>
+            <pre><code>Goal: APIレスポンスの型変更に追従する。
+Context: src/api/client.ts, src/components/UserCard.tsx, tests/user-card.test.ts
+Constraints: public component APIは変えない。新規依存は追加しない。
+Done when: pnpm test と pnpm typecheck が通る。</code></pre>
+          </div>
+          <div class="card danger">
+            <h3>悪い例</h3>
+            <pre><code>なんか直して</code></pre>
+            <p style="margin-top:14px">曖昧すぎると、不要な編集、テスト漏れ、スコープ逸脱が起きやすくなります。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="cheatsheet">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🧾</div><h2>12. 最低限覚える「鉄板セット」</h2></div>
+        <p class="sub">このセットだけでも、普段の開発でかなり使えます。</p>
+        <div class="card">
+          <div class="pill-row">
+            <span class="pill">/plan</span>
+            <span class="pill">/mention</span>
+            <span class="pill">/diff</span>
+            <span class="pill">/review</span>
+            <span class="pill">/status</span>
+            <span class="pill">/compact</span>
+            <span class="pill">/init</span>
+            <span class="pill">Ctrl+T</span>
+            <span class="pill">Ctrl+R</span>
+            <span class="pill">! &lt;command&gt;</span>
+            <span class="pill">Tab</span>
+          </div>
+          <pre><code>codex --sandbox workspace-write --ask-for-approval on-request</code></pre>
+          <div class="callout">
+            <div style="font-size:30px">✅</div>
+            <div><strong>長く使うリポジトリでは最初に <code>/init</code>。</strong><p>AGENTS.mdにテストコマンド、設計ルール、禁止事項、完了条件を書いておくと、Codex CLIの精度が上がります。</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sources">
+      <div class="wrap">
+        <div class="section-title"><div class="badge-icon">🔗</div><h2>参考リンク</h2></div>
+        <ul class="source-list">
+          <li><a href="https://developers.openai.com/codex/cli" target="_blank" rel="noreferrer">OpenAI Developers: Codex CLI</a></li>
+          <li><a href="https://developers.openai.com/codex/cli/features" target="_blank" rel="noreferrer">Codex CLI features</a></li>
+          <li><a href="https://developers.openai.com/codex/cli/slash-commands" target="_blank" rel="noreferrer">Slash commands</a></li>
+          <li><a href="https://developers.openai.com/codex/cli/reference" target="_blank" rel="noreferrer">CLI reference</a></li>
+          <li><a href="https://developers.openai.com/codex/config-basic" target="_blank" rel="noreferrer">Config basics</a></li>
+          <li><a href="https://developers.openai.com/codex/guides/agents-md" target="_blank" rel="noreferrer">AGENTS.md guide</a></li>
+          <li><a href="https://developers.openai.com/codex/mcp" target="_blank" rel="noreferrer">MCP with Codex</a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>Codex CLI 使いこなしガイド。単一HTMLファイルとして保存・共有・印刷できます。</p>
+    </div>
+  </footer>
+</body>
+</html>
